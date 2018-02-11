@@ -1,13 +1,10 @@
-// Windows Template Library - WTL version 8.1
-// Copyright (C) Microsoft Corporation. All rights reserved.
+// Windows Template Library - WTL version 9.10
+// Copyright (C) Microsoft Corporation, WTL Team. All rights reserved.
 //
 // This file is a part of the Windows Template Library.
 // The use and distribution terms for this software are covered by the
-// Common Public License 1.0 (http://opensource.org/licenses/cpl1.0.php)
-// which can be found in the file CPL.TXT at the root of this distribution.
-// By using this software in any fashion, you are agreeing to be bound by
-// the terms of this license. You must not remove this notice, or
-// any other, from this software.
+// Microsoft Public License (http://opensource.org/licenses/MS-PL)
+// which can be found in the file MS-PL.txt at the root folder.
 
 #ifndef __ATLDDX_H__
 #define __ATLDDX_H__
@@ -44,8 +41,8 @@ namespace WTL
 #define BEGIN_DDX_MAP(thisClass) \
 	BOOL DoDataExchange(BOOL bSaveAndValidate = FALSE, UINT nCtlID = (UINT)-1) \
 	{ \
-		bSaveAndValidate; \
-		nCtlID;
+		(bSaveAndValidate); \
+		(nCtlID);
 
 #define DDX_TEXT(nID, var) \
 		if(nCtlID == (UINT)-1 || nCtlID == nID) \
@@ -139,15 +136,23 @@ namespace WTL
 	}
 
 // DDX support for Tab, Combo, ListBox and ListView selection index
-// Note: ListView selection DDX support requires atlctrls.h included first
+// Note: Specialized versions require atlctrls.h to be included first
+#if (_MSC_VER >= 1300)
+
 #define DDX_INDEX(CtrlClass, nID, var) \
 	if(nCtlID == (UINT)-1 || nCtlID == nID) \
 		DDX_Index<CtrlClass>(nID, var, bSaveAndValidate);
 
-#define DDX_TAB_INDEX(nID, var)      DDX_INDEX(WTL::CTabCtrl, nID, var)
-#define DDX_COMBO_INDEX(nID, var)    DDX_INDEX(WTL::CComboBox, nID, var)
-#define DDX_LISTBOX_INDEX(nID, var)  DDX_INDEX(WTL::CListBox, nID, var)
-#define DDX_LISTVIEW_INDEX(nID, var) DDX_INDEX(WTL::CListViewCtrl, nID, var)
+#ifdef __ATLCTRLS_H__
+  #define DDX_TAB_INDEX(nID, var)      DDX_INDEX(WTL::CTabCtrl, nID, var)
+  #ifndef WIN32_PLATFORM_WFSP   // No COMBOBOX on SmartPhones
+    #define DDX_COMBO_INDEX(nID, var)    DDX_INDEX(WTL::CComboBox, nID, var)
+  #endif
+  #define DDX_LISTBOX_INDEX(nID, var)  DDX_INDEX(WTL::CListBox, nID, var)
+  #define DDX_LISTVIEW_INDEX(nID, var) DDX_INDEX(WTL::CListViewCtrl, nID, var)
+#endif // __ATLCTRLS_H__
+
+#endif // (_MSC_VER >= 1300)
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -222,7 +227,7 @@ public:
 		}
 		else
 		{
-			ATLASSERT(!bValidate || lstrlen(lpstrText) <= nLength);
+			ATLASSERT(!bValidate || (lstrlen(lpstrText) <= nLength));
 			bSuccess = pT->SetDlgItemText(nID, lpstrText);
 		}
 
@@ -258,7 +263,7 @@ public:
 		{
 			USES_CONVERSION;
 			LPTSTR lpstrText = OLE2T(bstrText);
-			ATLASSERT(!bValidate || lstrlen(lpstrText) <= nLength);
+			ATLASSERT(!bValidate || (lstrlen(lpstrText) <= nLength));
 			bSuccess = pT->SetDlgItemText(nID, lpstrText);
 		}
 
@@ -294,7 +299,7 @@ public:
 		{
 			USES_CONVERSION;
 			LPTSTR lpstrText = OLE2T(bstrText);
-			ATLASSERT(!bValidate || lstrlen(lpstrText) <= nLength);
+			ATLASSERT(!bValidate || (lstrlen(lpstrText) <= nLength));
 			bSuccess = pT->SetDlgItemText(nID, lpstrText);
 		}
 
@@ -375,7 +380,7 @@ public:
 		}
 		else
 		{
-			ATLASSERT(!bValidate || nVal >= nMin && nVal <= nMax);
+			ATLASSERT(!bValidate || (nVal >= nMin && nVal <= nMax));
 			bSuccess = pT->SetDlgItemInt(nID, nVal, bSigned);
 		}
 
@@ -438,7 +443,7 @@ public:
 		}
 		else
 		{
-			ATLASSERT(!bValidate || nVal >= nMin && nVal <= nMax);
+			ATLASSERT(!bValidate || (nVal >= nMin && nVal <= nMax));
 			SecureHelper::sprintf_x(szBuff, cchBuff, _T("%.*g"), nPrecision, nVal);
 			bSuccess = pT->SetDlgItemText(nID, szBuff);
 		}
@@ -481,7 +486,7 @@ public:
 		}
 		else
 		{
-			ATLASSERT(!bValidate || nVal >= nMin && nVal <= nMax);
+			ATLASSERT(!bValidate || (nVal >= nMin && nVal <= nMax));
 			SecureHelper::sprintf_x(szBuff, cchBuff, _T("%.*g"), nPrecision, nVal);
 			bSuccess = pT->SetDlgItemText(nID, szBuff);
 		}
@@ -609,6 +614,7 @@ public:
 	}
 
 // DDX support for Tab, Combo, ListBox and ListView selection index
+#if (_MSC_VER >= 1300)
 	template <class TCtrl>
 	INT _getSel(TCtrl& tCtrl)
 	{
@@ -618,29 +624,27 @@ public:
 	template <class TCtrl>
 	void _setSel(TCtrl& tCtrl, INT iSel)
 	{
-		if (iSel < 0)
-		{
+		if(iSel < 0)
 			tCtrl.SetCurSel(-1);
-		}
-		else tCtrl.SetCurSel(iSel);
+		else
+			tCtrl.SetCurSel(iSel);
 	}
 
 #ifdef __ATLCTRLS_H__
 	// ListViewCtrl specialization
 	template <>
-	INT _getSel(CListViewCtrl& tCtrl)
+	INT _getSel(WTL::CListViewCtrl& tCtrl)
 	{
 		return tCtrl.GetSelectedIndex();
 	}
 
 	template <>
-	void _setSel(CListViewCtrl& tCtrl, INT iSel)
+	void _setSel(WTL::CListViewCtrl& tCtrl, INT iSel)
 	{
-		if (iSel < 0)
-		{
-			tCtrl.SetItemState(-1, 0, LVIS_SELECTED);
-		}
-		else tCtrl.SelectItem(iSel);
+		if(iSel < 0)
+			tCtrl.SelectItem(-1);
+		else
+			tCtrl.SelectItem(iSel);
 	}
 #endif // __ATLCTRLS_H__
 
@@ -648,18 +652,14 @@ public:
 	void DDX_Index(UINT nID, INT& nVal, BOOL bSave)
 	{
 		T* pT = static_cast<T*>(this);
-
 		TCtrl ctrl(pT->GetDlgItem(nID));
 
 		if(bSave)
-		{
 			nVal = _getSel(ctrl);
-		}
 		else
-		{
 			_setSel(ctrl, nVal);
-		}
 	}
+#endif // (_MSC_VER >= 1300)
 
 // Overrideables
 	void OnDataExchangeError(UINT nCtrlID, BOOL /*bSave*/)
